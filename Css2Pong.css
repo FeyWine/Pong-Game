@@ -1,0 +1,11 @@
+.countdown-timer {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 48px;
+    color: white;
+    display: none;
+    z-index: 10; 
+    font-family: 'Jersey 10', sans-serif; 
+}

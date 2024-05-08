@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jeu Pong</title>
+    <link rel="shortcut icon" href="https://i.pinimg.com/originals/de/ca/76/deca76344097f07e75c6cd70a984357c.png">
+    <link href="Css2Pong.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Jersey+10&display=swap" rel="stylesheet">
+    <style>
+        /* Styles du canvas */
+        canvas {
+            background-color: black;
+            display: block;
+            margin: auto;
+        }
+
+        /* Centrer le canvas */
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Style du compteur */
+        #counter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: white;
+            display: none;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pong" width="1700" height="900"></canvas>
+    <div id="counter" class="countdown-timer"></div>
+    
+    <script>
+        // Sélectionnez le canvas
+        const canvas = document.getElementById('pong');
+        const context = canvas.getContext('2d');
+        
+        // Sélectionnez le compteur
+        const counterElement = document.getElementById('counter');
+
+        // Dimensions
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Raquettes
+        const paddleWidth = 10;
+        const paddleHeight = 100;
+        const paddleSpeed = 6;
+
+        const player = {
+            x: 0,
+            y: (height - paddleHeight) / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: 0
+        };
+
+        const computer = {
+            x: width - paddleWidth,
+            y: (height - paddleHeight) / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: 0
+        };
+
+        // Balle
+        const ball = {
+            x: width / 2,
+            y: height / 2,
+            radius: 10,
+            speed: 4,
+            dx: 4,
+            dy: 4
+        };
+
+        // Scores
+        let playerScore = 0;
+        let computerScore = 0;
+
+        // Contrôles du joueur
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'ArrowUp') {
+                player.dy = -paddleSpeed;
+            } else if (event.key === 'ArrowDown') {
+                player.dy = paddleSpeed;
+            }
+        });
+
+        document.addEventListener('keyup', function (event) {
+            if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+                player.dy = 0;
+            }
+        });
+
+        // Dessiner le jeu
+        function draw() {
+            // Effacer l'écran
+            context.clearRect(0, 0, width, height);
+
+            // Dessiner les raquettes
+            context.fillStyle = 'white';
+            context.fillRect(player.x, player.y, player.width, player.height);
+            context.fillRect(computer.x, computer.y, computer.width, computer.height);
+
+            // Dessiner la balle
+            context.beginPath();
+            context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            context.fill();
+
+            // Dessiner les scores
+            context.font = '32px Arial';
+            context.fillText(playerScore, width / 4, 30);
+            context.fillText(computerScore, 3 * width / 4, 30);
+        }
+
+        // Mettre à jour les positions
+        function update() {
+            // Mettre à jour les positions de la balle
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Vérifier les collisions avec les murs supérieurs et inférieurs
+            if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= height) {
+                ball.dy *= -1;
+            }
+
+            // Vérifier les collisions avec les raquettes
+            if (ball.x - ball.radius <= player.x + player.width &&
+                ball.y >= player.y &&
+                ball.y <= player.y + player.height) {
+                ball.dx *= -1;
+                // Ajuster la vitesse de la balle
+                ball.dy = ((ball.y - (player.y + player.height / 2)) / (player.height / 2)) * ball.speed;
+            }
+
+            if (ball.x + ball.radius >= computer.x &&
+                ball.y >= computer.y &&
+                ball.y <= computer.y + computer.height) {
+                ball.dx *= -1;
+                // Ajuster la vitesse de la balle
+                ball.dy = ((ball.y - (computer.y + computer.height / 2)) / (computer.height / 2)) * ball.speed;
+            }
+
+            // Vérifier les scores
+            if (ball.x + ball.radius < 0) {
+                // Incrémenter le score de l'ordinateur
+                computerScore++;
+                // Appeler pauseGameAndShowCounter pour la pause
+                pauseGameAndShowCounter();
+            } else if (ball.x - ball.radius > width) {
+                // Incrémenter le score du joueur
+                playerScore++;
+                // Appeler pauseGameAndShowCounter pour la pause
+                pauseGameAndShowCounter();
+            }
+
+            // Vérifier si l'un des scores atteint 10 points
+            if (playerScore === 10 || computerScore === 10) {
+                // Réinitialiser la partie
+                resetGame();
+            }
+
+            // Mettre à jour les positions des raquettes
+            player.y += player.dy;
+
+            // Contrôler le joueur pour qu'il reste dans l'aire de jeu
+            if (player.y < 0) {
+                player.y = 0;
+            } else if (player.y + player.height > height) {
+                player.y = height - player.height;
+            }
+
+            // Contrôler l'ordinateur
+            computer.y += ball.dy;
+            if (computer.y < 0) {
+                computer.y = 0;
+            } else if (computer.y + computer.height > height) {
+                computer.y = height - computer.height;
+            }
+        }
+
+        // Réinitialiser la balle
+        function resetBall() {
+            ball.x = width / 2;
+            ball.y = height / 2;
+            ball.dx *= -1;
+            ball.dy = (Math.random() * 2 - 1) * ball.speed;
+        }
+
+        // Réinitialiser le jeu
+        function resetGame() {
+            playerScore = 0;
+            computerScore = 0;
+            player.y = (height - paddleHeight) / 2;
+            computer.y = (height - paddleHeight) / 2;
+            resetBall();
+        }
+
+        // Compte à rebours et pause
+        function pauseGameAndShowCounter() {
+            // Arrêtez temporairement le jeu en arrêtant la boucle d'animation
+            isPaused = true;
+            
+            // Afficher le compteur à l'écran
+            counterElement.style.display = 'block';
+
+            // Effectuer un compte à rebours
+            let count = 2;
+            counterElement.textContent = count;
+
+            // Compteur de temps pour le compte à rebours
+            const countdownInterval = setInterval(() => {
+                count--;
+                counterElement.textContent = count;
+
+                // Si le compte atteint zéro, reprenez le jeu
+                if (count === 0) {
+                    clearInterval(countdownInterval);
+                    counterElement.style.display = 'none';
+                    resetBall();
+                    isPaused = false;
+                }
+            }, 1000);
+        }
+
+        // Variable pour gérer la pause du jeu
+        let isPaused = false;
+
+        // Boucle de jeu
+        function gameLoop() {
+            if (!isPaused) {
+                draw();
+                update();
+            }
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Lancer le jeu
+        gameLoop();
+    </script>
+    <script src="pong.js"></script>
+</body>
+</html>
